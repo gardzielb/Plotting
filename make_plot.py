@@ -3,7 +3,7 @@ import numpy as np
 from argparse import ArgumentParser
 
 from Plotter import Plotter
-from plotting import read_data, least_squares
+from plotting import read_data, least_squares, least_squares_errors
 
 
 def create_arg_parser() -> ArgumentParser:
@@ -13,11 +13,16 @@ def create_arg_parser() -> ArgumentParser:
 	parser.add_argument(
 		'-s', '--least-squares', help = 'Match line using least squares method', action = 'store_true'
 	)
+	parser.add_argument(
+		'-e', '--ls-errors', help = 'Match line using least squares method with y errors known; valid only after -s',
+		action = 'store_true'
+	)
 	parser.add_argument( '-b', '--least-squares-bmult', default = 0 )
 	parser.add_argument( '-g', '--grid', help = 'Plot with grid', action = 'store_true' )
 	parser.add_argument( '-x', '--xlabel', help = 'X axis label', default = 'x' )
 	parser.add_argument( '-y', '--ylabel', help = 'Y axis label', default = 'y' )
 	parser.add_argument( '-l', '--labels', help = 'Labels to show in a legend', nargs = '+', default = [] )
+	parser.add_argument( '--legend-loc', help = 'Legends location', default = 'lower-right' )
 	parser.add_argument( 'input_files', metavar = 'input', type = str, nargs = '+', help = 'Input csv files' )
 	return parser
 
@@ -33,8 +38,13 @@ if __name__ == '__main__':
 		plotter.plot_with_error( series )
 		if args.least_squares:
 			x, y = series.data[0], series.data[2]
-			a, b = least_squares( x, y, bmult = float( args.least_squares_bmult ) )
-			plotter.plot( x, a * np.array( x ) + b )
+			if args.ls_errors:
+				y_error = series.data[3]
+				ls_data = least_squares_errors( x, y, y_error )
+				plotter.plot( x, ls_data['a'] * np.array( x ) + ls_data['b'] )
+			else:
+				a, b = least_squares( x, y, bmult = float( args.least_squares_bmult ) )
+				plotter.plot( x, a * np.array( x ) + b )
 
 	if args.cmp_data:
 		cmp_series = read_data( args.cmp_data )
@@ -47,8 +57,7 @@ if __name__ == '__main__':
 	plt.ylabel( args.ylabel )
 
 	if args.labels:
-		plt.legend( loc = 'lower right' )
-		# plt.legend( loc = 'upper left' )
+		plt.legend( loc = args.legend_loc )
 
 	if args.output_file:
 		plt.savefig( args.output_file )

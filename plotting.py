@@ -29,3 +29,26 @@ def least_squares( x: List[float], y: List[float], bmult = 0 ) -> Tuple[float, f
 	a, b = np.linalg.lstsq( a_matrix, y, rcond = None )[0]
 	print( f'Least squares result: a = {a}, b = {b}' )
 	return a, b
+
+
+def least_squares_errors( x: List[float], y: List[float], y_error: List[float] ) -> dict:
+	x_array = np.array( x )
+	y_array = np.array( y )
+	w_array = 1 / (np.array( y_error ) ** 2)
+
+	a_up = w_array.sum() * (w_array * x_array * y_array).sum() - (w_array * x_array).sum() * (w_array * y_array).sum()
+	a_down = w_array.sum() * (w_array * x_array ** 2).sum() - (x_array * w_array).sum() ** 2
+	a = a_up / a_down
+
+	s_down = w_array.sum() * (w_array * x_array ** 2).sum() - (x_array * w_array).sum() ** 2
+	s_a = np.sqrt( w_array.sum() / s_down )
+
+	b_up = \
+		(w_array * x_array ** 2).sum() * (w_array * y_array).sum() - \
+		(w_array * x_array).sum() * (w_array * x_array * y_array).sum()
+	b = b_up / a_down
+
+	s_b = np.sqrt( (w_array * x_array ** 2).sum() / s_down )
+
+	print( f'Least squares result: a = {a}, s_a = {s_a}, b = {b}, s_b = {s_b}' )
+	return { 'a': a, 'b': b, 's_a': s_a, 's_b': s_b }
